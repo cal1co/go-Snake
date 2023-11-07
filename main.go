@@ -11,20 +11,17 @@ import (
 	"github.com/eiannone/keyboard"
 )
 
-const (
-	width  = 40
-	height = 20
-	startX = 5
-	startY = 5
-)
-
 type Movement string
 
 const (
-	Up    Movement = "up"
-	Down  Movement = "down"
-	Left  Movement = "left"
-	Right Movement = "right"
+	width           = 40
+	height          = 20
+	startX          = 5
+	startY          = 5
+	Up     Movement = "up"
+	Down   Movement = "down"
+	Left   Movement = "left"
+	Right  Movement = "right"
 )
 
 type Position struct {
@@ -36,6 +33,11 @@ func newPosition(x, y int) Position {
 	return Position{x, y}
 }
 
+func randomPosition() Position {
+	posX, posY := rand.Intn(width-2)+1, rand.Intn(height-2)+1
+	return Position{posX, posY}
+}
+
 type Snake struct {
 	direction Movement
 	head      Position
@@ -43,30 +45,6 @@ type Snake struct {
 	body      []Position
 	bodyMap   map[Position]bool
 	justAte   bool
-}
-
-type Fruit struct {
-	pos   Position
-	value int
-}
-
-func newFruit() *Fruit {
-	pos := randomPosition()
-	fruit := &Fruit{pos, 10}
-	return fruit
-}
-
-func randomPosition() Position {
-	posX, posY := rand.Intn(width-2)+1, rand.Intn(height-2)+1
-	return Position{posX, posY}
-}
-
-type Game struct {
-	score    int
-	gameOver bool
-	snake    *Snake
-	fruit    *Fruit
-	pace     time.Duration
 }
 
 func newSnake() *Snake {
@@ -95,11 +73,37 @@ func (s *Snake) move() {
 	s.body = append(s.body, s.head)
 	s.bodyMap[s.head] = true
 }
+
+type Fruit struct {
+	pos   Position
+	value int
+}
+
+func newFruit() *Fruit {
+	pos := randomPosition()
+	fruit := &Fruit{pos, 10}
+	return fruit
+}
+
+type Game struct {
+	score    int
+	gameOver bool
+	snake    *Snake
+	fruit    *Fruit
+	pace     time.Duration
+}
+
+func newSnakeGame() *Game {
+	game := &Game{0, false, newSnake(), newFruit(), 200}
+	return game
+}
+
 func (g *Game) checkEat() {
 	if g.snake.head == g.fruit.pos {
 		g.eat()
 	}
 }
+
 func (g *Game) eat() {
 	g.fruit.pos = randomPosition()
 	g.score += 10
@@ -115,6 +119,7 @@ func (g *Game) checkCollision() {
 	}
 	g.checkSelfCollision()
 }
+
 func (g *Game) checkSelfCollision() {
 	if !g.snake.justAte {
 		for i := len(g.snake.body) - 2; i >= 0; i-- {
@@ -130,17 +135,6 @@ func (g *Game) updateState() {
 	g.checkCollision()
 	g.snake.move()
 	g.checkEat()
-}
-
-func newSnakeGame() *Game {
-	game := &Game{0, false, newSnake(), newFruit(), 200}
-	return game
-}
-
-func clearScreen() {
-	cmd := exec.Command("clear")
-	cmd.Stdout = os.Stdout
-	cmd.Run()
 }
 
 func (g *Game) draw() {
@@ -172,6 +166,12 @@ func (g *Game) update() {
 	g.updateState()
 	g.draw()
 
+}
+
+func clearScreen() {
+	cmd := exec.Command("clear")
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 }
 
 func userInputListener(game *Game) {
