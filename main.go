@@ -66,6 +66,7 @@ type Game struct {
 	gameOver bool
 	snake    *Snake
 	fruit    *Fruit
+	pace     time.Duration
 }
 
 func newSnake() *Snake {
@@ -103,21 +104,36 @@ func (g *Game) eat() {
 	g.fruit.pos = randomPosition()
 	g.score += 10
 	g.snake.justAte = true
+	if g.pace > 75 {
+		g.pace -= 10
+	}
 }
 
 func (g *Game) checkCollision() {
 	if g.snake.head.x <= 0 || g.snake.head.x >= width || g.snake.head.y <= 0 || g.snake.head.y >= height {
 		g.gameOver = true
 	}
+	g.checkSelfCollision()
+}
+func (g *Game) checkSelfCollision() {
+	if !g.snake.justAte {
+		for i := len(g.snake.body) - 2; i >= 0; i-- {
+			if g.snake.head == g.snake.body[i] {
+				g.gameOver = true
+				return
+			}
+		}
+	}
 }
 
 func (g *Game) updateState() {
 	g.checkCollision()
+	g.snake.move()
 	g.checkEat()
 }
 
 func newSnakeGame() *Game {
-	game := &Game{0, false, newSnake(), newFruit()}
+	game := &Game{0, false, newSnake(), newFruit(), 200}
 	return game
 }
 
@@ -155,25 +171,7 @@ func (g *Game) draw() {
 func (g *Game) update() {
 	g.updateState()
 	g.draw()
-	g.snake.move()
-}
 
-func main() {
-	// handle collisions
-	// handle rampup speed
-
-	if err := keyboard.Open(); err != nil {
-		log.Fatal(err)
-	}
-	defer keyboard.Close()
-	game := newSnakeGame()
-
-	go userInputListener(game)
-
-	for !game.gameOver {
-		game.update()
-		time.Sleep(200 * time.Millisecond)
-	}
 }
 
 func userInputListener(game *Game) {
@@ -202,5 +200,20 @@ func userInputListener(game *Game) {
 			game.snake.direction = Right
 			continue
 		}
+	}
+}
+
+func main() {
+	if err := keyboard.Open(); err != nil {
+		log.Fatal(err)
+	}
+	defer keyboard.Close()
+	game := newSnakeGame()
+
+	go userInputListener(game)
+
+	for !game.gameOver {
+		game.update()
+		time.Sleep(game.pace * time.Millisecond)
 	}
 }
