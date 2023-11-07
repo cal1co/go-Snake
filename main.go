@@ -42,6 +42,7 @@ type Snake struct {
 	length    int
 	body      []Position
 	bodyMap   map[Position]bool
+	justAte   bool
 }
 
 type Fruit struct {
@@ -69,13 +70,16 @@ type Game struct {
 
 func newSnake() *Snake {
 	headPos := Position{startX, startY}
-	return &Snake{Right, headPos, 1, []Position{headPos}, map[Position]bool{headPos: true}}
+	return &Snake{Right, headPos, 1, []Position{headPos}, map[Position]bool{headPos: true}, false}
 }
 
 func (s *Snake) move() {
 	butt := s.body[0]
-	s.body = s.body[1:]
-	delete(s.bodyMap, butt)
+	if !s.justAte {
+		s.body = s.body[1:]
+		delete(s.bodyMap, butt)
+	}
+	s.justAte = false
 
 	switch s.direction {
 	case Up:
@@ -90,11 +94,26 @@ func (s *Snake) move() {
 	s.body = append(s.body, s.head)
 	s.bodyMap[s.head] = true
 }
-
 func (g *Game) checkEat() {
 	if g.snake.head == g.fruit.pos {
-		g.fruit.pos = randomPosition()
+		g.eat()
 	}
+}
+func (g *Game) eat() {
+	g.fruit.pos = randomPosition()
+	g.score += 10
+	g.snake.justAte = true
+}
+
+func (g *Game) checkCollision() {
+	if g.snake.head.x <= 0 || g.snake.head.x >= width || g.snake.head.y <= 0 || g.snake.head.y >= height {
+		g.gameOver = true
+	}
+}
+
+func (g *Game) updateState() {
+	g.checkCollision()
+	g.checkEat()
 }
 
 func newSnakeGame() *Game {
@@ -130,20 +149,17 @@ func (g *Game) draw() {
 		}
 		fmt.Println()
 	}
-	fmt.Printf("Score: %d-%d\n", g.score, g.fruit.pos)
+	fmt.Printf("Score: %d\n", g.score)
 }
 
 func (g *Game) update() {
-	g.checkEat()
+	g.updateState()
 	g.draw()
 	g.snake.move()
 }
 
 func main() {
-	// handle fruit eat
-	// handle growing snake
 	// handle collisions
-	// handle gameover
 	// handle rampup speed
 
 	if err := keyboard.Open(); err != nil {
